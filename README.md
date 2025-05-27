@@ -12,6 +12,9 @@ This project was built as a micro-product, showcasing the integration of Google 
 *   **Frontend:** https://comicflowaistudio-zmbjslumryjdbgoh5sjfcv.streamlit.app/
 *   **Backend API Docs:** https://comicflow-ai-studio-backend.onrender.com/docs
 
+![Capture](https://github.com/user-attachments/assets/30a54481-6dc7-491f-bc9e-905a1d4a14a4)
+
+
 *(Note: I am using free tiers for deployment, services may occasionally sleep or have cold starts, so the first load might be slower.)*
 
 ## ✨ Features
@@ -146,5 +149,6 @@ This application is designed for separate deployment of the backend and frontend
 *   Voting or rating for stories/panels, especially the "most unexpected twist."
 *   Exporting comics (e.g., as a single image or PDF).
 *   Improved error handling and UI refinement.
+  
 Created with 🧠 and ✨ by Aditya Pandey (AdityaPandey4)
 
