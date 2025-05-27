@@ -86,12 +86,15 @@ def save_story_to_json(story_id: str, panels_data: List[Dict[str, str]]) -> None
     except Exception as e:
         print(f"🔴 Error saving story {filepath}: {e}")
 
-# --- Function for LLM Story Refinement (No change) ---
 def refine_story_and_create_visual_prompt(
     user_input: str,
     previous_panels_data: List[Dict[str, str]]
 ) -> Optional[Dict[str, str]]:
-    print(f"\n🔷 Refining story for input: '{user_input}'")
+    """
+    Uses Gemini Pro to refine user input into narration, dialogue,
+    a visual prompt, AND a potential sound effect.
+    """
+    print(f"\n🔷 Refining story for input: '{user_input}' (incl. sound effect)")
     context_summary = ""
     if previous_panels_data:
         context_summary = "Previous scenes included:\n"
@@ -115,35 +118,61 @@ def refine_story_and_create_visual_prompt(
     A user has just added the following to the story: "{user_input}"
 
     Based on this new input and the preceding context, your tasks are:
-    1.  **Narration:** Write a concise and engaging narrative for THIS NEW comic panel(3-5 lines), but be sure to get the essence of the user inputs. You can use sounding words (like KABOOM, THUD...THUD, SQUEK, CRACK, KACHAAOOOOO etc) whenever it feels necessary
+    1.  **Narration:** Write a concise and engaging narrative caption for THIS NEW comic panel (1-2 sentences).
     2.  **Dialogue:** If the user's input implies dialogue, extract or create it.
         Format as "CHARACTER NAME (optional): Dialogue text." If no clear dialogue, state "None".
     3.  **Visual Prompt for Image Generation:** Create a DETAILED visual prompt for an AI image generator.
-        This prompt should describe the scene for THIS NEW panel, including:
-        *   Characters (if any, describe their appearance, actions, emotions).
-        *   Setting (location, time of day, atmosphere).
-        *   Key objects or elements.
-        *   Art Style: Specify "in a vibrant, dynamic comic book art style". You can add more specifics like "classic silver age comic style" or "modern gritty graphic novel style" if you feel it fits, but always include "comic book art style".
-        *   Composition/Framing (e.g., "close-up on character's face", "wide shot of the city").
-        *   Ensure this visual prompt logically follows any visual descriptions from previous panels if provided in the context.
+        Describe characters, setting, action, mood, art style ("vibrant, dynamic comic book art style"), composition.
+        Ensure this logically follows previous visual descriptions.
+    4.  **Sound Effect (Optional):** If the action or mood strongly suggests a classic comic book sound effect
+        (e.g., an impact, a sudden movement, an explosion, a magical zap), provide ONE such sound effect
+        in ALL CAPS (e.g., "KAPOW!", "VRRROOOM!", "ZAP!", "THUD!", "CREAK!").
+        If no sound effect is appropriate, state "None".
 
     Provide your response strictly as a JSON object with the following keys:
-    "narration": "Your generated narration for the new panel.",
-    "dialogue": "Your generated dialogue for the new panel, or 'None'.",
-    "visual_prompt": "Your detailed visual prompt for the image generator."
+    "ai_narration": "Your generated narration for the new panel.",
+    "ai_dialogue": "Your generated dialogue for the new panel, or 'None'.",
+    "ai_visual_prompt": "Your detailed visual prompt for the image generator.",
+    "ai_sound_effect": "Your suggested sound effect in ALL CAPS, or 'None'."
+
+    Example of a good JSON output:
+    {{
+      "ai_narration": "The hero leaps across the chasm, narrowly avoiding the laser beams!",
+      "ai_dialogue": "HERO: Almost there!",
+      "ai_visual_prompt": "Dynamic shot of a superhero in mid-air, leaping over a deep chasm with red laser beams crisscrossing below. Cityscape in the background. Vibrant comic book art style.",
+      "ai_sound_effect": "WHOOSH!"
+    }}
+
+    Ensure the JSON is valid.
     """
     try:
-        print(f"   Sending prompt to {TEXT_MODEL_NAME}...")
+        print(f"   Sending prompt to {TEXT_MODEL_NAME} (with sound effect request)...")
         response = text_model.generate_content(prompt)
         cleaned_response_text = response.text.strip().removeprefix("```json").removesuffix("```").strip()
+        
         refined_elements = json.loads(cleaned_response_text)
-        if not all(k in refined_elements for k in ["narration", "dialogue", "visual_prompt"]):
-            print("🔴 Error: LLM response missing required JSON keys.")
+
+        # VALIDATE ALL EXPECTED KEYS, INCLUDING THE NEW ONE
+        expected_keys = ["ai_narration", "ai_dialogue", "ai_visual_prompt", "ai_sound_effect"]
+        if not all(k in refined_elements for k in expected_keys):
+            print(f"🔴 Error: LLM response missing required JSON keys. Expected: {expected_keys}, Got: {list(refined_elements.keys())}")
+            print(f"   LLM Raw Text was: {response.text}")
             return None
-        print("   ✅ LLM (Text Refinement) processing successful.")
+        
+        # Normalize "None" string for sound effect if necessary
+        if isinstance(refined_elements.get("ai_sound_effect"), str) and refined_elements["ai_sound_effect"].strip().lower() == "none":
+            refined_elements["ai_sound_effect"] = None # Store as Python None
+
+        print("   ✅ LLM (Text Refinement + Sound Effect) processing successful.")
+        print(f"   ↪ Narration: {refined_elements['ai_narration']}")
+        print(f"   ↪ Dialogue: {refined_elements['ai_dialogue']}")
+        print(f"   ↪ Visual Prompt: {refined_elements['ai_visual_prompt']}")
+        print(f"   ↪ Sound Effect: {refined_elements.get('ai_sound_effect')}") # Use .get for safety
         return refined_elements
+
     except json.JSONDecodeError as e:
-        print(f"🔴 Error: Failed to decode JSON from LLM response: {e} (Text: {response.text if 'response' in locals() else 'N/A'})")
+        print(f"🔴 Error: Failed to decode JSON from LLM response: {e}")
+        print(f"   LLM Raw Text was: {response.text if 'response' in locals() else 'N/A'}")
         return None
     except Exception as e:
         block_reason = getattr(getattr(response, 'prompt_feedback', None), 'block_reason', None) if 'response' in locals() else None
@@ -192,32 +221,32 @@ def generate_comic_image_with_client(
 def create_new_comic_panel_logic(
     story_id: str,
     user_story_input: str
-) -> Optional[Dict[str, str]]:
+) -> Optional[Dict[str, str]]: # Return type still Dict, but it will contain the new field
     print(f"\n🆕 Processing panel for story '{story_id}', user input: '{user_story_input}'")
     current_story_panels = load_story_from_json(story_id)
     
     refined_elements = refine_story_and_create_visual_prompt(user_story_input, current_story_panels)
     if not refined_elements: return None
 
-    image_filename = generate_comic_image_with_client(refined_elements["visual_prompt"])
+    image_filename = generate_comic_image_with_client(refined_elements["ai_visual_prompt"])
     if not image_filename: return None
 
-    image_url = f"/static/panels/{image_filename}" # Construct URL for frontend
+    image_url = f"/static/panels/{image_filename}" 
 
     new_panel_data = {
         "panel_number": len(current_story_panels) + 1,
         "user_input": user_story_input,
-        "ai_narration": refined_elements["narration"],
-        "ai_dialogue": refined_elements["dialogue"],
-        "ai_visual_prompt": refined_elements["visual_prompt"], # Keep for context, maybe not for frontend
-        "image_url": image_url, # Use this for display
-        # "image_filename": image_filename # Could be useful for backend management
+        "ai_narration": refined_elements["ai_narration"],
+        "ai_dialogue": refined_elements.get("ai_dialogue"), # Use .get for safety
+        "ai_visual_prompt": refined_elements["ai_visual_prompt"],
+        "ai_sound_effect": refined_elements.get("ai_sound_effect"), # ADDED: Store the sound effect
+        "image_url": image_url,
     }
     current_story_panels.append(new_panel_data)
     save_story_to_json(story_id, current_story_panels)
-    print(f"✅ New panel added to story '{story_id}' and saved!")
-
+    print(f"✅ New panel added to story '{story_id}' (with sound effect: {new_panel_data.get('ai_sound_effect')}) and saved!")
     return new_panel_data
+
 
 # --- NEW: Function for AI Director's Suggestion ---
 def get_ai_directors_suggestion(
@@ -312,6 +341,7 @@ class PanelResponse(BaseModel):
     user_input: str
     ai_narration: str
     ai_dialogue: Optional[str] = None
+    ai_sound_effect: Optional[str] = None
     # ai_visual_prompt: str # Probably not needed in frontend response
     image_url: str
 
@@ -352,6 +382,7 @@ async def add_panel_to_story(
         user_input=new_panel["user_input"],
         ai_narration=new_panel["ai_narration"],
         ai_dialogue=new_panel.get("ai_dialogue"),
+        ai_sound_effect=new_panel.get("ai_sound_effect"),
         image_url=new_panel["image_url"]
     )
     return response_panel
@@ -374,6 +405,7 @@ async def get_story_panels(
             user_input=p["user_input"],
             ai_narration=p["ai_narration"],
             ai_dialogue=p.get("ai_dialogue"),
+            ai_sound_effect=p.get("ai_sound_effect"),
             image_url=p["image_url"] # Assuming image_url is already stored correctly
         ) for p in panels_data
     ]
