@@ -25,8 +25,6 @@ STORY_JSON_DIR = os.path.join(BASE_DIR, "comic_stories_json")
 os.makedirs(IMAGE_OUTPUT_DIR, exist_ok=True)
 os.makedirs(STORY_JSON_DIR, exist_ok=True)
 
-os.environ["GOOGLE_API_KEY"] = "AIzaSyD8XcO-lbEzlFB4ZbXxTEjWegpfuy-44JM"
-
 # --- Prerequisites: API Key Configuration ---
 try:
     GEMINI_API_KEY = os.environ.get("GOOGLE_API_KEY")
