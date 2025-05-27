@@ -4,7 +4,7 @@ import os
 from PIL import Image
 from io import BytesIO
 import json # Ensure json is imported
-
+st.set_page_config(page_title="ComicFlow AI Studio", layout="wide")
 # --- Configuration ---
 # Use an environment variable for the backend URL, with a local fallback
 FASTAPI_BASE_URL = os.environ.get("FASTAPI_BASE_URL", "http://127.0.0.1:8000")
@@ -46,7 +46,7 @@ def post_to_api(endpoint, data):
         return None
 
 # --- Streamlit App Layout ---
-st.set_page_config(page_title="ComicFlow AI Studio", layout="wide")
+
 st.title("🎨 ComicFlow AI Studio")
 
 # Initialize session states if not already present
