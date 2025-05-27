@@ -56,6 +56,95 @@ This project was built as a micro-product, showcasing the integration of Google 
 ### 1. Clone the Repository
 
 ```bash
-git clone 
+git clone https://github.com/AdityaPandey4/ComicFlow_AI_Studio.git
 cd comicflow_project
 ```
+### 2. Backend Setup & Run
+Follow these steps within the backend/ directory:
+```bash
+cd backend
+```
+Create a Virtual Environment (Recommended):
+
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+Install Dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Set Environment Variables:
+Create a .env file in the backend/ directory (this file is gitignored):
+
+```bash
+GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY_HERE"
+```
+
+Replace "YOUR_GOOGLE_API_KEY_HERE" with your actual API key.
+Run the FastAPI Backend:
+```bash
+uvicorn main:app --reload
+```
+
+The backend API will typically be available at http://127.0.0.1:8000. You can access the API docs at http://127.0.0.1:8000/docs.
+
+### 3. Frontend Setup & Run
+Open a new terminal and follow these steps within the frontend/ directory:
+
+```bash
+cd frontend # (from the project root, or navigate from backend/ to ../frontend/)
+```
+Create a Virtual Environment (Recommended, can be separate from backend's):
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+Install Dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+Run the Streamlit Frontend:
+(Ensure your backend is already running as per the previous step)
+```bash
+streamlit run app.py
+```
+The Streamlit app will typically open in your browser at http://localhost:8501. It will connect to the local backend running on port 8000 by default.
+## ☁️ Deployment Notes
+This application is designed for separate deployment of the backend and frontend.
+*   Backend (FastAPI)
+   *   The backend is containerized using the backend/Dockerfile.
+   *   It expects the GOOGLE_API_KEY environment variable to be set on the deployment platform.
+   *   It creates comic_stories_json/ and generated_comics_panels/ directories for data storage. For persistent storage on platforms like Render, configure persistent disks/volumes mounted to these paths (e.g., /app/comic_stories_json and /app/generated_comics_panels if WORKDIR in Docker is /app). As the persistant storage requires paid tier of the Render deployement platform, I don't have persistant storage at this stage 
+   *   Remember to configure CORS in backend/main.py to allow requests from your deployed frontend's domain.
+*   Frontend (Streamlit)
+   *   The frontend can be easily deployed to Streamlit Community Cloud.
+   *   It requires a secret (environment variable) named FASTAPI_BASE_URL to be set in Streamlit Cloud, pointing to the live URL of your deployed FastAPI backend (e.g., https://your-backend-name.onrender.com).
+   *   The main application file is frontend/app.py.
+
+## 💡 How to Use: The Joy of Unexpected Twists!
+1. Access the Frontend: Open the live Streamlit app URL (or your local version).
+2. Manage Stories:
+*   Select Existing Story: Jump into an ongoing narrative and see where it's headed (or where you can steer it!).
+*   Create New Story: Kick off a fresh adventure.
+3. View Panels: Catch up on the current state of the selected story – characters, plot, and previous hilarious or dramatic turns.
+4. Add Your Twist (or Contribution!):
+*   Enter your idea for the next scene or action. This is your chance to continue the current thread, or throw in that comedic curveball, that sudden alien invasion, or that unexpected talking squirrel that changes everything!
+*   (Optional) Click "🎬 Get AI Director's Suggestion" if you need a spark or want to see what the AI thinks could happen next.
+*   Click "✨ Generate Next Panel".
+5. Witness the Evolution: The AI processes your input, and the story continues, shaped by your (and others') creativity.
+6. Embrace the Chaos: The true essence is in co-creating stories that go in directions no single person could have planned. A serious drama might become a side-splitting comedy, a simple quest might involve interdimensional travel – all thanks to the collaborative spirit!
+## 🤝 Contributing (Example - Keep simple for now)
+*   This was a rapid prototype. Potential areas for future development:
+*   User accounts and authentication (to see who added which twist!).
+*   More advanced image style controls.
+*   Voting or rating for stories/panels, especially the "most unexpected twist."
+*   Exporting comics (e.g., as a single image or PDF).
+*   Improved error handling and UI refinement.
+Created with 🧠 and ✨ by Aditya Pandey (AdityaPandey4)
+
