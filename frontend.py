@@ -37,7 +37,7 @@ def post_to_api(endpoint, data):
 
 # --- Streamlit App Layout ---
 st.set_page_config(page_title="ComicFlow AI Studio", layout="wide")
-st.title("🎨 ComicFlow AI Studio เจน สตอรี่")
+st.title("🎨 ComicFlow AI Studio")
 
 # Initialize session states if not already present
 if 'current_panels' not in st.session_state:
@@ -136,23 +136,48 @@ if selected_story_id_for_display:
 
     if st.session_state.current_panels:
         st.subheader("Story So Far:")
-        for panel in st.session_state.current_panels:
-            col1, col2 = st.columns([1, 2])
+        for panel in st.session_state.current_panels: # panel is now expected to have 'ai_sound_effect'
+            col1, col2 = st.columns([1, 2]) 
             with col1:
                 image_url = f"{FASTAPI_BASE_URL}{panel['image_url']}"
                 try:
                     image_response = requests.get(image_url, stream=True)
                     image_response.raise_for_status()
                     panel_image = Image.open(BytesIO(image_response.content))
-                    st.image(panel_image, caption=f"Panel {panel['panel_number']}", use_column_width=True)
+                    st.image(panel_image, caption=f"Panel {panel['panel_number']}", use_container_width=True)
                 except Exception as e:
                     st.error(f"Error loading/displaying image for panel {panel['panel_number']}: {e}")
+            
             with col2:
                 st.markdown(f"**Panel {panel['panel_number']}**")
+                
+                # --- NEW: Display Sound Effect ---
+                sound_effect = panel.get('ai_sound_effect')
+                if sound_effect and sound_effect.strip().upper() != "NONE":
+                    # Basic styling: larger, bold, maybe a color.
+                    # For more advanced styling, you might need st.markdown with unsafe_allow_html=True
+                    # and some inline CSS, or use a component.
+                    st.markdown(f"""
+                    <div style="
+                        font-size: 1.5em; 
+                        font-weight: bold; 
+                        color: #FF4B4B; /* A reddish color, adjust as needed */
+                        text-align: center; 
+                        padding: 5px;
+                        margin-bottom: 10px;
+                        border: 2px dashed #FF4B4B; /* Optional border */
+                        border-radius: 10px;
+                        background-color: #FFF0F0; /* Light background for the bubble */
+                    ">
+                        {sound_effect.upper()}
+                    </div>
+                    """, unsafe_allow_html=True)
+                
                 st.markdown(f"**Narration:** {panel['ai_narration']}")
                 if panel.get('ai_dialogue') and panel['ai_dialogue'].lower() != 'none':
                     st.markdown(f"**Dialogue:** {panel['ai_dialogue']}")
             st.markdown("---")
+            
     elif selected_story_id_for_display and selected_story_id_for_display not in existing_stories:
         st.info("This is a new story. Add the first panel below!")
     elif selected_story_id_for_display:
