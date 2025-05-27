@@ -116,7 +116,7 @@ def refine_story_and_create_visual_prompt(
     A user has just added the following to the story: "{user_input}"
 
     Based on this new input and the preceding context, your tasks are:
-    1.  **Narration:** Write a concise and engaging narrative caption for THIS NEW comic panel (1-2 sentences).
+    1.  **Narration:** Write a concise and engaging narrative caption for THIS NEW comic panel (2-4 sentences). And be sure to understand the essence of the input by user and write your caption based on it.
     2.  **Dialogue:** If the user's input implies dialogue, extract or create it.
         Format as "CHARACTER NAME (optional): Dialogue text." If no clear dialogue, state "None".
     3.  **Visual Prompt for Image Generation:** Create a DETAILED visual prompt for an AI image generator.
