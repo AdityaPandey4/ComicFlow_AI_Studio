@@ -6,7 +6,17 @@ from io import BytesIO
 import json # Ensure json is imported
 
 # --- Configuration ---
-FASTAPI_BASE_URL = "http://127.0.0.1:8000"
+# Use an environment variable for the backend URL, with a local fallback
+FASTAPI_BASE_URL = os.environ.get("FASTAPI_BASE_URL", "http://127.0.0.1:8000")
+
+if FASTAPI_BASE_URL == "http://127.0.0.1:8000" and "localhost" not in os.environ.get("STREAMLIT_SERVER_ADDRESS", ""):
+    # This warning helps if you forget to set the secret in Streamlit Cloud
+    # but might not be perfect if Streamlit Cloud sets STREAMLIT_SERVER_ADDRESS.
+    # A more direct check could be to see if "streamlit.app" is in the current URL if accessible.
+    # For simplicity, this warning is okay.
+    st.sidebar.warning("Frontend is using a local backend URL. If deployed, ensure the `FASTAPI_BASE_URL` secret is correctly set in Streamlit Cloud pointing to your live backend.")
+else:
+    st.sidebar.info(f"Backend API: {FASTAPI_BASE_URL}") # Good for debugging deployed version
 
 # Helper function to make GET requests
 def get_from_api(endpoint):
