@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv # For .env file if used
-
+from fastapi.middleware.cors import CORSMiddleware
 # --- Load Environment Variables (Optional, if using .env) ---
 load_dotenv()
 
@@ -327,6 +327,22 @@ def get_ai_directors_suggestion(
 
 # --- FastAPI App Definition ---
 app = FastAPI(title="ComicFlow AI API")
+
+# Add CORS middleware
+origins = [
+    "*" # Allows all origins - USE WITH CAUTION, for hackathon speed
+    # Later, replace with your specific Streamlit frontend URL(s)
+    # e.g., "https://your-streamlit-app-name.streamlit.app",
+    # "http://localhost:8501" (for local Streamlit testing)
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"], # Allows all standard methods
+    allow_headers=["*"], # Allows all headers
+)
 
 # Mount static files directory for images
 # The path "/static/panels" will serve files from the IMAGE_OUTPUT_DIR directory
