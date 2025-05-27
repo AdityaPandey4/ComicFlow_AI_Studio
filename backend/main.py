@@ -50,14 +50,14 @@ except Exception as e:
     exit()
 
 # --- Image Generation Model and Client Configuration ---
-IMAGE_GEN_MODEL_NAME_FROM_SNIPPET = "gemini-2.0-flash-preview-image-generation"
+IMAGE_GEN_MODEL = "gemini-2.0-flash-preview-image-generation"
 try:
     image_client = genai.Client()
-    print(f"✅ Gemini Client for Image Generation (for model {IMAGE_GEN_MODEL_NAME_FROM_SNIPPET}) Initialized.")
+    print(f"✅ Gemini Client for Image Generation (for model {IMAGE_GEN_MODEL}) Initialized.")
 except Exception as e:
     print(f"🔴 FATAL: Error initializing Gemini Client for Image Gen: {e}")
     image_client = None
-    # exit() # Or handle gracefully if image gen is optional
+    
 
 # --- JSON Story Persistence Functions ---
 def get_story_filepath(story_id: str) -> str:
@@ -150,7 +150,7 @@ def refine_story_and_create_visual_prompt(
         
         refined_elements = json.loads(cleaned_response_text)
 
-        # VALIDATE ALL EXPECTED KEYS, INCLUDING THE NEW ONE
+        # VALIDATE ALL EXPECTED KEYS
         expected_keys = ["ai_narration", "ai_dialogue", "ai_visual_prompt", "ai_sound_effect"]
         if not all(k in refined_elements for k in expected_keys):
             print(f"🔴 Error: LLM response missing required JSON keys. Expected: {expected_keys}, Got: {list(refined_elements.keys())}")
@@ -159,13 +159,13 @@ def refine_story_and_create_visual_prompt(
         
         # Normalize "None" string for sound effect if necessary
         if isinstance(refined_elements.get("ai_sound_effect"), str) and refined_elements["ai_sound_effect"].strip().lower() == "none":
-            refined_elements["ai_sound_effect"] = None # Store as Python None
+            refined_elements["ai_sound_effect"] = None 
 
         print("   ✅ LLM (Text Refinement + Sound Effect) processing successful.")
         print(f"   ↪ Narration: {refined_elements['ai_narration']}")
         print(f"   ↪ Dialogue: {refined_elements['ai_dialogue']}")
         print(f"   ↪ Visual Prompt: {refined_elements['ai_visual_prompt']}")
-        print(f"   ↪ Sound Effect: {refined_elements.get('ai_sound_effect')}") # Use .get for safety
+        print(f"   ↪ Sound Effect: {refined_elements.get('ai_sound_effect')}") 
         return refined_elements
 
     except json.JSONDecodeError as e:
@@ -180,7 +180,7 @@ def refine_story_and_create_visual_prompt(
             print(f"🔴 An unexpected error occurred with Gemini Pro ({TEXT_MODEL_NAME}): {e}")
         return None
 
-# --- Function for Image Generation (Using client method) ---
+# --- Function for Image Generation  ---
 def generate_comic_image_with_client(
     visual_prompt: str,
     output_dir: str = IMAGE_OUTPUT_DIR
@@ -191,7 +191,7 @@ def generate_comic_image_with_client(
     print(f"\n🎨 Generating image for prompt: '{visual_prompt[:100]}...'")
     try:
         response = image_client.models.generate_content(
-            model=IMAGE_GEN_MODEL_NAME_FROM_SNIPPET,
+            model=IMAGE_GEN_MODEL,
             contents=[visual_prompt],
             config=types.GenerateContentConfig(response_modalities=['TEXT','IMAGE'])
         )
@@ -209,7 +209,7 @@ def generate_comic_image_with_client(
             print(f"   ✅ Image saved to: {filepath}")
             return filename # Return only filename for URL construction
         else:
-            print(f"🔴 Error: No image data in Gemini response for model {IMAGE_GEN_MODEL_NAME_FROM_SNIPPET}.")
+            print(f"🔴 Error: No image data in Gemini response for model {IMAGE_GEN_MODEL}.")
             return None
     except Exception as e:
         print(f"🔴 Error during image generation: {e}")
@@ -219,7 +219,7 @@ def generate_comic_image_with_client(
 def create_new_comic_panel_logic(
     story_id: str,
     user_story_input: str
-) -> Optional[Dict[str, str]]: # Return type still Dict, but it will contain the new field
+) -> Optional[Dict[str, str]]: 
     print(f"\n🆕 Processing panel for story '{story_id}', user input: '{user_story_input}'")
     current_story_panels = load_story_from_json(story_id)
     
@@ -235,9 +235,9 @@ def create_new_comic_panel_logic(
         "panel_number": len(current_story_panels) + 1,
         "user_input": user_story_input,
         "ai_narration": refined_elements["ai_narration"],
-        "ai_dialogue": refined_elements.get("ai_dialogue"), # Use .get for safety
+        "ai_dialogue": refined_elements.get("ai_dialogue"), 
         "ai_visual_prompt": refined_elements["ai_visual_prompt"],
-        "ai_sound_effect": refined_elements.get("ai_sound_effect"), # ADDED: Store the sound effect
+        "ai_sound_effect": refined_elements.get("ai_sound_effect"), 
         "image_url": image_url,
     }
     current_story_panels.append(new_panel_data)
@@ -268,7 +268,7 @@ def get_ai_directors_suggestion(
         panel_summary_texts.append(summary)
     
     story_context = "\n".join(panel_summary_texts)
-    if not story_context.strip(): # Should not happen if current_story_panels is not empty
+    if not story_context.strip(): 
         story_context = "The story has panels but no narration or dialogue yet."
 
     prompt = f"""
@@ -299,7 +299,7 @@ def get_ai_directors_suggestion(
 
     try:
         print(f"   Sending prompt to {TEXT_MODEL_NAME} for Director's Cut...")
-        # print(f"   Context sent: {story_context[:300]}...") # For debugging
+        
         response = text_model.generate_content(prompt)
 
         suggestion = response.text.strip()
@@ -328,10 +328,7 @@ app = FastAPI(title="ComicFlow AI API")
 
 # Add CORS middleware
 origins = [
-    "*" # Allows all origins - USE WITH CAUTION, for hackathon speed
-    # Later, replace with your specific Streamlit frontend URL(s)
-    # e.g., "https://your-streamlit-app-name.streamlit.app",
-    # "http://localhost:8501" (for local Streamlit testing)
+    "https://comicflowaistudio-zmbjslumryjdbgoh5sjfcv.streamlit.app/"
 ]
 
 app.add_middleware(
@@ -356,7 +353,6 @@ class PanelResponse(BaseModel):
     ai_narration: str
     ai_dialogue: Optional[str] = None
     ai_sound_effect: Optional[str] = None
-    # ai_visual_prompt: str # Probably not needed in frontend response
     image_url: str
 
 class StoryResponse(BaseModel):
@@ -366,7 +362,7 @@ class StoryResponse(BaseModel):
 class StoryListItem(BaseModel):
     story_id: str
 
-class AISuggestionResponse(BaseModel): # NEW Pydantic model for the suggestion
+class AISuggestionResponse(BaseModel): 
     story_id: str
     suggestion: str
 
@@ -381,16 +377,13 @@ async def add_panel_to_story(
     Adds a new panel to an existing story or creates a new story if story_id is new.
     The AI will generate narration, dialogue (if any), and a comic-style image for the panel.
     """
-    # Consider running the AI logic in a threadpool for true async if it's very slow
-    # from starlette.concurrency import run_in_threadpool
-    # new_panel = await run_in_threadpool(create_new_comic_panel_logic, story_id, panel_input.user_story_input)
     
     new_panel = create_new_comic_panel_logic(story_id, panel_input.user_story_input)
 
     if not new_panel:
         raise HTTPException(status_code=500, detail="Failed to generate comic panel due to an internal AI or processing error.")
     
-    # Adapt to PanelResponse model (remove ai_visual_prompt if not in PanelResponse)
+    
     response_panel = PanelResponse(
         panel_number=new_panel["panel_number"],
         user_input=new_panel["user_input"],
@@ -412,7 +405,7 @@ async def get_story_panels(
     if not panels_data:
         raise HTTPException(status_code=404, detail=f"Story with ID '{story_id}' not found.")
     
-    # Adapt loaded panels to PanelResponse model
+
     response_panels = [
         PanelResponse(
             panel_number=p["panel_number"],
@@ -434,7 +427,7 @@ async def list_all_stories():
     try:
         for filename in os.listdir(STORY_JSON_DIR):
             if filename.endswith(".json"):
-                story_ids.append(StoryListItem(story_id=filename[:-5])) # Remove .json extension
+                story_ids.append(StoryListItem(story_id=filename[:-5])) 
     except Exception as e:
         print(f"Error listing stories: {e}")
         raise HTTPException(status_code=500, detail="Could not retrieve story list.")
@@ -455,9 +448,7 @@ async def get_director_suggestion_for_story(
         pass # Let the function handle it, or raise 404 if story MUST exist.
         # For this feature, it's okay if the story is new and has no panels yet.
 
-    # Consider running in threadpool if this LLM call is slow
-    # from starlette.concurrency import run_in_threadpool
-    # suggestion = await run_in_threadpool(get_ai_directors_suggestion, story_id, current_panels)
+    
     suggestion = get_ai_directors_suggestion(story_id, current_panels)
 
     if suggestion is None: # Indicates an error during suggestion generation
@@ -471,10 +462,12 @@ async def get_director_suggestion_for_story(
 async def root():
     return {"message": "Welcome to ComicFlow AI API! Visit /docs for API documentation."}
 
-# --- To run the app (if this file is executed directly) ---
-if __name__ == "__main__":
-    import uvicorn
-    print("🚀 Starting FastAPI server...")
-    print("   Access API docs at http://127.0.0.1:8000/docs")
-    print("   Access ReDoc at http://127.0.0.1:8000/redoc")
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+# # --- To run the app (if this file is executed directly) ---
+# ONLY FOR LOCAL EXECUTION
+
+# if __name__ == "__main__":
+#     import uvicorn
+#     print("🚀 Starting FastAPI server...")
+#     print("   Access API docs at http://127.0.0.1:8000/docs")
+#     print("   Access ReDoc at http://127.0.0.1:8000/redoc")
+#     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
